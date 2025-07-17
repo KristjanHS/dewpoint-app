@@ -57,6 +57,105 @@ st.markdown(
 )
 
 
+# --- Add Refresh Data button at the top ---
+def refresh_data():
+    """Clear all cached weather and location data"""
+    st.toast("🔄 Re-fetching all data now...", icon="🔄")
+    for key in [
+        "last_city",
+        "outdoor_temp_fetched",
+        "outdoor_rh_fetched",
+        "forecast_6h",
+        "forecast_12h",
+        "debug_info",
+        "forecast_hour_1",
+        "forecast_hour_2",
+    ]:
+        st.session_state.pop(key, None)  # Clear cache safely
+
+
+# Add keyboard shortcut and mobile-friendly refresh options
+st.markdown(
+    """
+    <script>
+    // Keyboard shortcut (desktop)
+    document.addEventListener('keydown', function(event) {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'r') {
+            event.preventDefault();
+            triggerRefresh();
+        }
+    });
+    
+    // Pull-to-refresh for mobile (simplified version)
+    let startY = 0;
+    let currentY = 0;
+    let isRefreshing = false;
+    
+    document.addEventListener('touchstart', function(event) {
+        if (window.scrollY === 0) {  // Only at top of page
+            startY = event.touches[0].clientY;
+        }
+    });
+    
+    document.addEventListener('touchmove', function(event) {
+        if (window.scrollY === 0 && startY > 0) {
+            currentY = event.touches[0].clientY;
+            const pullDistance = currentY - startY;
+            
+            if (pullDistance > 100 && !isRefreshing) {  // Pull down 100px
+                isRefreshing = true;
+                triggerRefresh();
+            }
+        }
+    });
+    
+    document.addEventListener('touchend', function(event) {
+        startY = 0;
+        currentY = 0;
+        setTimeout(() => { isRefreshing = false; }, 1000);
+    });
+    
+    function triggerRefresh() {
+        const refreshButton = document.querySelector('button[data-testid="stButton"]');
+        if (refreshButton && refreshButton.textContent.includes('🔄')) {
+            refreshButton.click();
+        }
+    }
+    </script>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Mobile-friendly refresh options
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    st.button(
+        "🔄 Refresh Data",
+        help="Re-fetch geolocation and all weather data (Ctrl+R / Cmd+R / Pull down on mobile)",
+        key="refresh_button",
+        on_click=refresh_data,
+    )
+
+# Add mobile-specific refresh options
+with st.expander("📱 Mobile Refresh Options", expanded=False):
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("🔄 Quick Refresh", key="mobile_refresh_1", on_click=refresh_data):
+            pass
+    with col_b:
+        if st.button("🔄 Force Reload", key="mobile_refresh_2", on_click=refresh_data):
+            pass
+
+    st.markdown(
+        """
+    **Mobile Tips:**
+    - **Pull down** at the top of the page to refresh
+    - **Tap the refresh button** above
+    - **Use the quick buttons** in this section
+    - **Swipe down** from the very top (like native apps)
+    """
+    )
+
 # --- Outdoor weather fetch ---
 # Try to get user location via JS eval
 loc = get_js_geolocation()
@@ -500,7 +599,7 @@ if "lat" in locals() and "lon" in locals() and lat is not None and lon is not No
             if nearest and nearest.get("humidity") is not None:
                 st.markdown("---")
                 st.subheader("Estonian Environment Agency Humidity (nearest station)")
-                st.markdown(f"**Station:** {nearest.get('Jaam','?')}")
+                st.markdown(f"**Station:** {nearest.get('Jaam', '?')}")
                 # Format timestamp for easier reading in local time
                 dt_obj = user_tz.localize(
                     datetime.strptime(f"{date_str} {hour_str}", "%Y-%m-%d %H")
