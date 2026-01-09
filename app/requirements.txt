@@ -4,3 +4,4 @@ numpy
 python-dotenv
 streamlit_js_eval
 timezonefinder
+urllib3>=2.6.3 # not directly required, pinned by Snyk to avoid a vulnerability
